@@ -1,0 +1,2 @@
+// Example deck shown on first visit. Delete this file (and its <script> tag in index.html) to start with no decks.
+window.FREEQUIZ_SAMPLE = {"id": "example-capitals", "title": "Example: World Capitals", "source": "example", "cards": [["France", "Paris"], ["Japan", "Tokyo"], ["Brazil", "Brasília"], ["Canada", "Ottawa"], ["Australia", "Canberra"], ["Egypt", "Cairo"], ["India", "New Delhi"], ["Mexico", "Mexico City"], ["Kenya", "Nairobi"], ["Germany", "Berlin"]]};

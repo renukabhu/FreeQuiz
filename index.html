@@ -1,0 +1,914 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Study flashcards and take quizzes from an exported flashcard-set PDF. Free, and your files never leave your browser.">
+<title>FreeQuiz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&display=swap">
+<style>
+:root { color-scheme: light; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; }
+img { max-width: 100%; }
+/* Layout: one study desk. Header with deck name, a mode switch, then a single working surface (index card, quiz sheet, or card list). */
+:root {
+  --bg: #eaefec;
+  --surface: #ffffff;
+  --card: #fffdf5;
+  --ink: #16211e;
+  --muted: #5a6a66;
+  --line: #d0d9d5;
+  --accent: #0d6a5b;
+  --accent-ink: #ffffff;
+  --accent-soft: #d6ebe5;
+  --rule: #c3d6ea;
+  --margin: #e17b70;
+  --good: #1d7f47;
+  --good-soft: #dcf1e3;
+  --bad: #b83b27;
+  --bad-soft: #f8e1dc;
+  --hl: #f5e27c;
+  --shadow: 0 1px 2px rgba(22,33,30,.06), 0 8px 24px rgba(22,33,30,.08);
+  --f-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --f-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1614; --surface: #17201e; --card: #1d2724; --ink: #e4ebe8; --muted: #95a49f;
+    --line: #2b3734; --accent: #52c3aa; --accent-ink: #062019; --accent-soft: #19342e;
+    --rule: #263a4d; --margin: #9c4e46; --good: #63d293; --good-soft: #163324;
+    --bad: #ff8d77; --bad-soft: #3a1d18; --hl: #5b5222;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1614; --surface: #17201e; --card: #1d2724; --ink: #e4ebe8; --muted: #95a49f;
+  --line: #2b3734; --accent: #52c3aa; --accent-ink: #062019; --accent-soft: #19342e;
+  --rule: #263a4d; --margin: #9c4e46; --good: #63d293; --good-soft: #163324;
+  --bad: #ff8d77; --bad-soft: #3a1d18; --hl: #5b5222;
+  --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 16px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 48px;
+}
+.wrap { max-width: 860px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+header.top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 20px; }
+.brand { font-family: var(--f-display); font-weight: 800; font-size: 1.5rem; letter-spacing: -.02em; display: flex; align-items: center; gap: 10px; }
+.brand .mark { width: 30px; height: 22px; border-radius: 3px; background: var(--card); border: 1.5px solid var(--ink); position: relative; transform: rotate(-6deg); }
+.brand .mark::before { content: ""; position: absolute; left: 0; right: 0; top: 6px; border-top: 1.5px solid var(--margin); }
+.brand .mark::after { content: ""; position: absolute; left: 4px; right: 4px; top: 12px; border-top: 1.5px solid var(--rule); box-shadow: 0 4px 0 -0px var(--rule); }
+.deckpick { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1 1 260px; justify-content: flex-end; }
+.deckpick select { min-width: 0; max-width: 100%; flex: 0 1 auto; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); }
+
+.deckhead { display: flex; flex-direction: column; gap: 4px; }
+.deckhead h1 { font-family: var(--f-display); font-weight: 700; font-size: clamp(1.5rem, 4vw, 2.1rem); line-height: 1.15; letter-spacing: -.02em; margin: 0; text-wrap: balance; }
+.meta { color: var(--muted); font-size: .9rem; display: flex; flex-wrap: wrap; gap: 4px 14px; }
+.meta b { color: var(--ink); font-variant-numeric: tabular-nums; }
+
+nav.modes { display: flex; gap: 4px; padding: 4px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow-x: auto; }
+nav.modes button { flex: 1 0 auto; border: 0; background: transparent; padding: 9px 10px; font-size: .95rem; border-radius: 9px; font-weight: 700; color: var(--muted); }
+nav.modes button[aria-selected="true"] { background: var(--accent); color: var(--accent-ink); }
+nav.modes button:not([aria-selected="true"]):hover { background: var(--accent-soft); color: var(--ink); }
+
+.panel { display: flex; flex-direction: column; gap: 16px; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center; }
+.toolbar .grow { flex: 1; }
+.btn { border: 1px solid var(--line); background: var(--surface); padding: 8px 14px; border-radius: 9px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; }
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn.primary:hover { filter: brightness(1.08); }
+.btn.good { background: var(--good-soft); border-color: transparent; color: var(--good); }
+.btn.bad { background: var(--bad-soft); border-color: transparent; color: var(--bad); }
+.btn[disabled] { opacity: .45; cursor: default; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 9px; overflow: hidden; background: var(--surface); }
+.seg button { border: 0; background: transparent; padding: 7px 12px; font-weight: 700; color: var(--muted); }
+.seg button[aria-pressed="true"] { background: var(--accent-soft); color: var(--ink); }
+.label { font-size: .75rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 700; }
+kbd { font-family: inherit; font-size: .8em; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; background: var(--surface); }
+
+/* index card */
+.stage { perspective: 1400px; }
+.flash { position: relative; width: 100%; height: clamp(230px, 48vw, 360px); border: 0; padding: 0; background: none; transform-style: preserve-3d; transition: transform .45s cubic-bezier(.3,.7,.2,1); }
+.flash.flipped { transform: rotateX(180deg); }
+.face {
+  position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden;
+  background-color: var(--card); border-radius: 6px; box-shadow: var(--shadow); border: 1px solid var(--line);
+  display: flex; align-items: center; justify-content: center; padding: 48px 28px 28px; text-align: center;
+  background-image: linear-gradient(var(--margin), var(--margin)), repeating-linear-gradient(to bottom, transparent 0, transparent 31px, var(--rule) 31px, var(--rule) 32px);
+  background-size: 100% 2px, 100% 100%; background-position: 0 40px, 0 40px; background-repeat: no-repeat, repeat;
+}
+.face.back { transform: rotateX(180deg); }
+.face .side { position: absolute; top: 12px; left: 16px; }
+.face .count { position: absolute; top: 12px; right: 16px; font-variant-numeric: tabular-nums; color: var(--muted); font-size: .85rem; }
+.face .txt { font-family: var(--f-display); font-weight: 600; font-size: clamp(1.5rem, 5vw, 2.6rem); line-height: 1.2; overflow-wrap: anywhere; max-height: 100%; overflow-y: auto; }
+.face .txt.long { font-family: var(--f-body); font-weight: 400; font-size: clamp(1rem, 2.6vw, 1.3rem); text-align: left; }
+.face .pile { position: absolute; bottom: 12px; right: 16px; font-size: .8rem; font-weight: 700; padding: 2px 8px; border-radius: 99px; }
+.pile.known { background: var(--good-soft); color: var(--good); }
+.pile.learning { background: var(--bad-soft); color: var(--bad); }
+.cardnav { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; align-items: center; }
+.hint { color: var(--muted); font-size: .85rem; text-align: center; }
+.bar { height: 6px; background: var(--line); border-radius: 99px; overflow: hidden; }
+.bar > i { display: block; height: 100%; background: var(--accent); width: 0; transition: width .3s; }
+
+/* quiz */
+.sheet { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: clamp(18px, 4vw, 32px); display: flex; flex-direction: column; gap: 18px; }
+.prompt { font-family: var(--f-display); font-weight: 700; font-size: clamp(1.4rem, 4.5vw, 2.2rem); line-height: 1.2; overflow-wrap: anywhere; }
+.prompt.long { font-family: var(--f-body); font-weight: 400; font-size: 1.15rem; }
+.choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+@media (max-width: 560px) { .choices { grid-template-columns: 1fr; } }
+.choice { text-align: left; border: 1.5px solid var(--line); background: var(--card); padding: 12px 14px; border-radius: 10px; display: flex; gap: 10px; align-items: baseline; min-width: 0; overflow-wrap: anywhere; }
+.choice:hover:not([disabled]) { border-color: var(--accent); }
+.choice .k { font-weight: 700; color: var(--muted); font-size: .85rem; flex: none; }
+.choice.right { border-color: var(--good); background: var(--good-soft); }
+.choice.wrong { border-color: var(--bad); background: var(--bad-soft); }
+.choice[disabled] { cursor: default; }
+.typed { display: flex; gap: 8px; flex-wrap: wrap; }
+.typed input { flex: 1 1 220px; min-width: 0; padding: 12px 14px; border-radius: 10px; border: 1.5px solid var(--line); background: var(--card); font-size: 1.1rem; }
+.typed input:focus { border-color: var(--accent); outline: none; }
+.feedback { border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; }
+.feedback.right { background: var(--good-soft); color: var(--good); }
+.feedback.wrong { background: var(--bad-soft); color: var(--bad); }
+.feedback .ans { color: var(--ink); }
+.feedback .row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+.accents { display: flex; flex-wrap: wrap; gap: 4px; }
+.accents button { border: 1px solid var(--line); background: var(--card); border-radius: 6px; min-width: 34px; padding: 4px 6px; }
+.score { font-family: var(--f-display); font-weight: 800; font-size: clamp(2.5rem, 9vw, 4rem); line-height: 1; font-variant-numeric: tabular-nums; }
+.setup { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+.setup .fld { display: flex; flex-direction: column; gap: 6px; }
+
+/* learn */
+.lstats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.lstat { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border-radius: 10px; background: var(--surface); border: 1px solid var(--line); }
+.lstat b { font-family: var(--f-display); font-size: 1.5rem; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.lstat .label::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; }
+.lstat.new .label::before { background: var(--line); }
+.lstat.lrn .label::before { background: var(--margin); }
+.lstat.mst .label::before { background: var(--good); }
+.lbar { display: flex; height: 10px; border-radius: 99px; overflow: hidden; background: var(--line); }
+.lbar i { display: block; height: 100%; transition: width .4s; }
+.lbar .mst { background: var(--good); } .lbar .lrn { background: var(--margin); }
+.lround { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.lround .pip { width: 22px; height: 6px; border-radius: 99px; background: var(--line); }
+.lround .pip.ok { background: var(--good); } .lround .pip.no { background: var(--bad); } .lround .pip.now { background: var(--accent); }
+.lvl { display: inline-block; font-size: .75rem; font-weight: 700; padding: 1px 8px; border-radius: 99px; vertical-align: middle; }
+.lvl.l0 { background: var(--bad-soft); color: var(--bad); } .lvl.l1 { background: var(--accent-soft); color: var(--accent); } .lvl.l2 { background: var(--good-soft); color: var(--good); }
+.lsum .row-card { grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) auto; }
+@media (max-width: 520px) { .lsum .row-card { grid-template-columns: minmax(0, 1fr) auto; } .lsum .row-card .d { grid-column: 1; } }
+@media (prefers-reduced-motion: reduce) { .lbar i { transition: none; } }
+
+/* list */
+.search { padding: 9px 12px; border-radius: 9px; border: 1px solid var(--line); background: var(--surface); flex: 1 1 200px; min-width: 0; }
+.list { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.row-card { display: grid; grid-template-columns: 3.2em minmax(0, 1fr) minmax(0, 1.2fr); gap: 12px; padding: 11px 16px; border-top: 1px solid var(--line); align-items: baseline; }
+.row-card:first-child { border-top: 0; }
+.row-card .n { color: var(--muted); font-variant-numeric: tabular-nums; font-size: .85rem; }
+.row-card .t { font-weight: 700; overflow-wrap: anywhere; }
+.row-card .d { overflow-wrap: anywhere; }
+@media (max-width: 520px) { .row-card { grid-template-columns: 2.4em minmax(0, 1fr); } .row-card .d { grid-column: 2; } }
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-left: 6px; vertical-align: middle; }
+.dot.known { background: var(--good); } .dot.learning { background: var(--bad); }
+mark { background: var(--hl); color: inherit; border-radius: 2px; }
+
+/* import */
+.drop { border: 2px dashed var(--line); border-radius: 14px; background: var(--surface); padding: 32px 20px; display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; transition: border-color .2s, background .2s; }
+.drop.over { border-color: var(--accent); background: var(--accent-soft); }
+.drop h2, .paste h2 { font-family: var(--f-display); font-size: 1.25rem; margin: 0; }
+.drop p, .paste p { margin: 0; color: var(--muted); max-width: 52ch; }
+.paste { display: flex; flex-direction: column; gap: 10px; }
+.paste textarea { width: 100%; min-height: 140px; padding: 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); resize: vertical; }
+.status { font-weight: 700; }
+.status.err { color: var(--bad); } .status.ok { color: var(--good); }
+.decks { display: flex; flex-direction: column; gap: 8px; }
+.deckrow { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; }
+.deckrow .nm { flex: 1 1 200px; min-width: 0; font-weight: 700; overflow-wrap: anywhere; }
+.deckrow .c { color: var(--muted); font-size: .9rem; font-variant-numeric: tabular-nums; }
+.empty { text-align: center; color: var(--muted); padding: 32px 12px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+@media (prefers-reduced-motion: reduce) { .flash, .bar > i { transition: none; } }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand"><span class="mark" aria-hidden="true"></span>FreeQuiz</div>
+    <div class="deckpick">
+      <label class="label" for="deckSel">Deck</label>
+      <select id="deckSel"></select>
+    </div>
+  </header>
+
+  <div class="deckhead">
+    <h1 id="deckTitle">Loading…</h1>
+    <div class="meta" id="deckMeta"></div>
+  </div>
+
+  <nav class="modes" role="tablist" aria-label="Study mode">
+    <button role="tab" data-mode="learn" id="tab-learn">Learn</button>
+    <button role="tab" data-mode="flash" id="tab-flash">Flashcards</button>
+    <button role="tab" data-mode="quiz" id="tab-quiz">Quiz</button>
+    <button role="tab" data-mode="list" id="tab-list">Cards</button>
+    <button role="tab" data-mode="import" id="tab-import">Add PDF</button>
+  </nav>
+
+  <!-- LEARN -->
+  <section class="panel" id="p-learn" hidden>
+    <div class="lstats">
+      <div class="lstat new"><span class="label">Not studied</span><b id="lsNew">0</b></div>
+      <div class="lstat lrn"><span class="label">Learning</span><b id="lsLrn">0</b></div>
+      <div class="lstat mst"><span class="label">Mastered</span><b id="lsMst">0</b></div>
+    </div>
+    <div class="lbar" aria-hidden="true"><i class="mst" id="lbMst"></i><i class="lrn" id="lbLrn"></i></div>
+    <div class="sheet" id="lStart">
+      <p style="margin:0">Learn works through the deck in short rounds. New cards start as multiple choice. Once you get one right, it comes back as a typed question. Type it correctly and the card is mastered. Missed cards come back later in the same round.</p>
+      <div class="setup">
+        <div class="fld">
+          <span class="label">You are shown</span>
+          <div class="seg" id="lDir">
+            <button data-v="term" aria-pressed="true">Term</button>
+            <button data-v="def" aria-pressed="false">Definition</button>
+          </div>
+        </div>
+        <div class="fld">
+          <span class="label">Question types</span>
+          <div class="seg" id="lTypes">
+            <button data-v="both" aria-pressed="true">Choice + typed</button>
+            <button data-v="mc" aria-pressed="false">Choice only</button>
+          </div>
+        </div>
+      </div>
+      <div class="toolbar"><button class="btn primary" id="lGo" type="button">Start learning</button><button class="btn" id="lReset" type="button">Reset Learn progress</button></div>
+    </div>
+    <div class="sheet" id="lRun" hidden>
+      <div class="toolbar"><span class="label" id="lRoundLbl"></span><span class="grow"></span><button class="btn" id="lPause" type="button">Pause</button></div>
+      <div class="lround" id="lPips" aria-hidden="true"></div>
+      <div class="label" id="lAsk"></div>
+      <div class="prompt" id="lPrompt"></div>
+      <div id="lBody"></div>
+      <div id="lFeedback" aria-live="polite"></div>
+    </div>
+    <div class="sheet lsum" id="lSum" hidden></div>
+  </section>
+
+  <!-- FLASHCARDS -->
+  <section class="panel" id="p-flash" hidden>
+    <div class="toolbar">
+      <span class="label">Show first</span>
+      <div class="seg" id="fDir">
+        <button data-v="term" aria-pressed="true">Term</button>
+        <button data-v="def" aria-pressed="false">Definition</button>
+      </div>
+      <span class="grow"></span>
+      <div class="seg" id="fPool">
+        <button data-v="all" aria-pressed="true">All</button>
+        <button data-v="learning" aria-pressed="false">Still learning</button>
+      </div>
+      <button class="btn" id="fShuffle" type="button">Shuffle</button>
+    </div>
+    <div class="bar" aria-hidden="true"><i id="fBar"></i></div>
+    <div class="stage">
+      <button class="flash" id="flash" type="button" aria-live="polite">
+        <div class="face front"><span class="label side" id="fSideA">Term</span><span class="count" id="fCountA"></span><div class="txt" id="fFront"></div><span class="pile" id="fPileA" hidden></span></div>
+        <div class="face back"><span class="label side" id="fSideB">Definition</span><span class="count" id="fCountB"></span><div class="txt" id="fBack"></div><span class="pile" id="fPileB" hidden></span></div>
+      </button>
+    </div>
+    <div class="cardnav">
+      <button class="btn" id="fPrev" type="button" aria-label="Previous card">← Back</button>
+      <button class="btn bad" id="fLearning" type="button">Still learning</button>
+      <button class="btn good" id="fKnown" type="button">Got it</button>
+      <button class="btn" id="fNext" type="button" aria-label="Next card">Next →</button>
+    </div>
+    <p class="hint">Tap the card to flip. Keys: <kbd>Space</kbd> flip, <kbd>←</kbd> <kbd>→</kbd> move, <kbd>1</kbd> still learning, <kbd>2</kbd> got it.</p>
+  </section>
+
+  <!-- QUIZ -->
+  <section class="panel" id="p-quiz" hidden>
+    <div class="sheet" id="qSetup">
+      <div class="setup">
+        <div class="fld">
+          <span class="label">Question type</span>
+          <div class="seg" id="qType">
+            <button data-v="mc" aria-pressed="true">Multiple choice</button>
+            <button data-v="typed" aria-pressed="false">Type it</button>
+            <button data-v="mix" aria-pressed="false">Mix</button>
+          </div>
+        </div>
+        <div class="fld">
+          <span class="label">You are shown</span>
+          <div class="seg" id="qDir">
+            <button data-v="term" aria-pressed="true">Term</button>
+            <button data-v="def" aria-pressed="false">Definition</button>
+            <button data-v="both" aria-pressed="false">Both</button>
+          </div>
+        </div>
+        <div class="fld">
+          <span class="label">Questions</span>
+          <div class="seg" id="qLen">
+            <button data-v="10" aria-pressed="false">10</button>
+            <button data-v="20" aria-pressed="true">20</button>
+            <button data-v="50" aria-pressed="false">50</button>
+            <button data-v="all" aria-pressed="false">All</button>
+          </div>
+        </div>
+        <div class="fld">
+          <span class="label">Cards</span>
+          <div class="seg" id="qPool">
+            <button data-v="all" aria-pressed="true">All</button>
+            <button data-v="learning" aria-pressed="false">Still learning</button>
+          </div>
+        </div>
+      </div>
+      <div><button class="btn primary" id="qStart" type="button">Start quiz</button></div>
+    </div>
+    <div class="sheet" id="qRun" hidden>
+      <div class="toolbar"><span class="label" id="qProg"></span><span class="grow"></span><span class="label" id="qRunScore"></span><button class="btn" id="qQuit" type="button">End quiz</button></div>
+      <div class="bar" aria-hidden="true"><i id="qBar"></i></div>
+      <div class="label" id="qAsk"></div>
+      <div class="prompt" id="qPrompt"></div>
+      <div id="qBody"></div>
+      <div id="qFeedback"></div>
+    </div>
+    <div class="sheet" id="qDone" hidden></div>
+  </section>
+
+  <!-- LIST -->
+  <section class="panel" id="p-list" hidden>
+    <div class="toolbar">
+      <input class="search" id="lSearch" type="search" placeholder="Search terms and definitions" aria-label="Search cards">
+      <span class="meta" id="lCount"></span>
+    </div>
+    <div class="list" id="lList"></div>
+  </section>
+
+  <!-- IMPORT -->
+  <section class="panel" id="p-import" hidden>
+    <div class="drop" id="drop">
+      <h2>Drop a flashcard PDF here</h2>
+      <p>Use the PDF you export or print from your flashcard set. FreeQuiz reads the numbered term and definition columns. The file never leaves your browser.</p>
+      <label class="btn primary" for="file">Choose PDF</label>
+      <input class="sr" id="file" type="file" accept="application/pdf,.pdf">
+      <div class="status" id="impStatus" role="status"></div>
+    </div>
+    <div class="paste">
+      <h2>Or paste cards as text</h2>
+      <p>One card per line, with a tab between term and definition (the default text export). A dash, colon, or comma also works.</p>
+      <input class="search" id="pasteName" type="text" placeholder="Deck name" aria-label="Deck name">
+      <textarea id="pasteText" placeholder="la boca	mouth&#10;el brazo	arm"></textarea>
+      <div><button class="btn primary" id="pasteGo" type="button">Add deck</button> <span class="status" id="pasteStatus" role="status"></span></div>
+    </div>
+    <div class="paste">
+      <h2>Your decks</h2>
+      <p>Decks and your progress are saved in this browser only.</p>
+      <div class="decks" id="deckList"></div>
+    </div>
+  </section>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"></script>
+<script src="sample-deck.js"></script>
+<script>
+const SAMPLE = window.FREEQUIZ_SAMPLE || null; // optional example deck from sample-deck.js
+
+/* ---------- storage ---------- */
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+};
+let decks = store.get('fq.decks', null);
+if (!Array.isArray(decks)) decks = [];
+if (SAMPLE && !decks.some(d => d.id === SAMPLE.id) && !store.get('fq.sampleRemoved', false)) decks.unshift(SAMPLE);
+let progress = store.get('fq.progress', {}); // deckId -> {cardIndex: 'known'|'learning'}
+let curId = store.get('fq.cur', decks[0] && decks[0].id);
+if (!decks.some(d => d.id === curId)) curId = decks[0] && decks[0].id;
+let mode = store.get('fq.mode', 'learn');
+const saveDecks = () => store.set('fq.decks', decks);
+const deck = () => decks.find(d => d.id === curId) || decks[0];
+const prog = () => (progress[curId] ||= {});
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [a[i], a[j]] = [a[j], a[i]]; } return a; };
+function seg(id, onChange) {
+  const el = $(id);
+  el.addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    el.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b));
+    onChange && onChange(b.dataset.v);
+  });
+  return () => el.querySelector('[aria-pressed="true"]').dataset.v;
+}
+function setSeg(id, v) { $(id).querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x.dataset.v === v)); }
+
+/* ---------- header / modes ---------- */
+function renderHeader() {
+  const d = deck();
+  document.querySelectorAll('nav.modes button').forEach(b => b.disabled = !d && b.dataset.mode !== 'import');
+  $('deckSel').parentNode.hidden = !d;
+  if (!d) { $('deckTitle').textContent = 'Add your first deck'; $('deckMeta').textContent = 'Drop in a PDF exported from your flashcard set to start studying.'; return; }
+  const p = prog();
+  const known = Object.values(p).filter(v => v === 'known').length;
+  const learning = Object.values(p).filter(v => v === 'learning').length;
+  $('deckTitle').textContent = d.title;
+  $('deckMeta').innerHTML = `<span><b>${d.cards.length}</b> cards</span><span><b>${known}</b> got it</span><span><b>${learning}</b> still learning</span>` + (SAMPLE && d.id === SAMPLE.id ? '<span>' + esc(SAMPLE.label || 'Example deck') + '</span>' : '');
+  $('deckSel').innerHTML = decks.map(x => `<option value="${esc(x.id)}"${x.id === curId ? ' selected' : ''}>${esc(x.title)} (${x.cards.length})</option>`).join('');
+}
+$('deckSel').addEventListener('change', e => selectDeck(e.target.value));
+function selectDeck(id) {
+  curId = id; store.set('fq.cur', id);
+  renderHeader(); resetFlash(); quizReset(); renderList(); L = null; learnReset();
+  if (mode === 'import') setMode('flash');
+}
+document.querySelector('nav.modes').addEventListener('click', e => { const b = e.target.closest('button'); if (b) setMode(b.dataset.mode); });
+function setMode(m) {
+  if (!deck()) m = 'import';
+  mode = m; store.set('fq.mode', m);
+  document.querySelectorAll('nav.modes button').forEach(b => b.setAttribute('aria-selected', b.dataset.mode === m));
+  ['learn', 'flash', 'quiz', 'list', 'import'].forEach(x => $('p-' + x).hidden = x !== m);
+  if (m === 'learn' && !L) learnReset();
+  if (m !== 'learn') clearTimeout(lTimer);
+  if (m === 'list') renderList();
+  if (m === 'import') renderDeckList();
+}
+
+/* ---------- flashcards ---------- */
+let fOrder = [], fPos = 0;
+const fDir = seg('fDir', () => renderFlash());
+const fPool = seg('fPool', () => resetFlash());
+function resetFlash(shuf) {
+  const d = deck(), p = prog();
+  let idx = d.cards.map((_, i) => i);
+  if (fPool() === 'learning') idx = idx.filter(i => p[i] === 'learning');
+  fOrder = shuf ? shuffle(idx) : idx; fPos = 0; renderFlash();
+}
+function renderFlash(keepFlip) {
+  const flash = $('flash'); if (!keepFlip) flash.classList.remove('flipped');
+  const d = deck(), n = fOrder.length;
+  if (!n) {
+    $('fFront').textContent = fPool() === 'learning' ? 'No cards marked “still learning” yet.' : 'This deck has no cards.';
+    $('fFront').className = 'txt long'; $('fBack').textContent = ''; $('fCountA').textContent = $('fCountB').textContent = '';
+    $('fPileA').hidden = $('fPileB').hidden = true; $('fBar').style.width = '0';
+    return;
+  }
+  const i = fOrder[fPos], c = d.cards[i], termFirst = fDir() === 'term';
+  const a = termFirst ? c[0] : c[1], b = termFirst ? c[1] : c[0];
+  $('fFront').textContent = a; $('fBack').textContent = b;
+  $('fFront').className = 'txt' + (a.length > 90 ? ' long' : ''); $('fBack').className = 'txt' + (b.length > 90 ? ' long' : '');
+  $('fSideA').textContent = termFirst ? 'Term' : 'Definition'; $('fSideB').textContent = termFirst ? 'Definition' : 'Term';
+  $('fCountA').textContent = $('fCountB').textContent = `${fPos + 1} / ${n}`;
+  const st = prog()[i];
+  [$('fPileA'), $('fPileB')].forEach(el => { el.hidden = !st; el.className = 'pile ' + (st || ''); el.textContent = st === 'known' ? 'Got it' : 'Still learning'; });
+  $('fBar').style.width = ((fPos + 1) / n * 100) + '%';
+}
+function fMove(dx) { if (!fOrder.length) return; fPos = (fPos + dx + fOrder.length) % fOrder.length; renderFlash(); }
+function fMark(v) {
+  if (!fOrder.length) return;
+  prog()[fOrder[fPos]] = v; store.set('fq.progress', progress); renderHeader();
+  if (fPos < fOrder.length - 1) fMove(1); else renderFlash(true);
+}
+$('flash').addEventListener('click', () => { if (fOrder.length) $('flash').classList.toggle('flipped'); });
+$('fPrev').onclick = () => fMove(-1); $('fNext').onclick = () => fMove(1);
+$('fKnown').onclick = () => fMark('known'); $('fLearning').onclick = () => fMark('learning');
+$('fShuffle').onclick = () => resetFlash(true);
+document.addEventListener('keydown', e => {
+  if (mode !== 'flash' || e.target.matches('input, textarea, select')) return;
+  if (e.key === ' ' && e.target.id !== 'flash') { e.preventDefault(); $('flash').click(); }
+  else if (e.key === 'ArrowRight') fMove(1);
+  else if (e.key === 'ArrowLeft') fMove(-1);
+  else if (e.key === '1') fMark('learning');
+  else if (e.key === '2') fMark('known');
+});
+
+/* ---------- answer checking ---------- */
+const norm = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\([^)]*\)/g, ' ').replace(/[^a-z0-9ñ\s]/g, ' ').replace(/\s+/g, ' ').trim();
+const stripArt = s => s.replace(/^(el|la|los|las|un|una|unos|unas|the|a|an|to) /, '');
+const exactish = s => s.toLowerCase().replace(/\s+/g, ' ').trim();
+function lev(a, b) {
+  const m = a.length, n = b.length; if (!m || !n) return m + n;
+  let prev = Array.from({length: n + 1}, (_, j) => j);
+  for (let i = 1; i <= m; i++) { const cur = [i]; for (let j = 1; j <= n; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); prev = cur; }
+  return prev[n];
+}
+// returns {ok, note}
+function check(given, answer) {
+  if (!given.trim()) return {ok: false};
+  const alts = [answer, ...answer.split(/[\/;,]| or /)].map(s => s.trim()).filter(Boolean);
+  for (const alt of alts) {
+    if (exactish(given) === exactish(alt)) return {ok: true};
+    const g = norm(given), a = norm(alt);
+    if (!a) continue;
+    if (g === a) return {ok: true, note: 'Check your accents and punctuation.'};
+    if (stripArt(g) === stripArt(a)) return {ok: true, note: g === stripArt(g) && a !== stripArt(a) ? `Remember the article: “${alt}”.` : 'Close enough.'};
+    if (a.length >= 6 && lev(g, a) <= (a.length >= 12 ? 2 : 1)) return {ok: true, note: 'Almost. Watch the spelling.'};
+  }
+  return {ok: false};
+}
+
+/* ---------- quiz ---------- */
+const qType = seg('qType'), qDir = seg('qDir'), qLen = seg('qLen'), qPool = seg('qPool');
+let Q = null;
+function quizReset() { Q = null; $('qSetup').hidden = false; $('qRun').hidden = true; $('qDone').hidden = true; }
+function quizStart(indices) {
+  const d = deck(), p = prog();
+  let idx = indices || d.cards.map((_, i) => i);
+  if (!indices && qPool() === 'learning') idx = idx.filter(i => p[i] === 'learning');
+  if (!idx.length) { $('qSetup').querySelector('.btn').textContent = 'No cards to quiz. Mark some as still learning first.'; setTimeout(() => $('qStart').textContent = 'Start quiz', 2500); return; }
+  idx = shuffle(idx);
+  const L = qLen(); if (!indices && L !== 'all') idx = idx.slice(0, +L);
+  Q = { items: idx.map(i => {
+          const t = qType() === 'mix' ? (Math.random() < .5 ? 'mc' : 'typed') : qType();
+          const showTerm = qDir() === 'both' ? Math.random() < .5 : qDir() === 'term';
+          return { i, type: d.cards.length < 4 ? 'typed' : t, showTerm };
+        }), pos: 0, right: 0, missed: [], answered: false };
+  $('qSetup').hidden = true; $('qDone').hidden = true; $('qRun').hidden = false;
+  renderQ();
+}
+function renderQ() {
+  const d = deck(), it = Q.items[Q.pos], c = d.cards[it.i];
+  const prompt = it.showTerm ? c[0] : c[1], answer = it.showTerm ? c[1] : c[0];
+  Q.answered = false;
+  $('qProg').textContent = `Question ${Q.pos + 1} of ${Q.items.length}`;
+  $('qRunScore').textContent = `${Q.right} right`;
+  $('qBar').style.width = (Q.pos / Q.items.length * 100) + '%';
+  $('qAsk').textContent = it.showTerm ? 'Term · give the definition' : 'Definition · give the term';
+  $('qPrompt').textContent = prompt; $('qPrompt').className = 'prompt' + (prompt.length > 90 ? ' long' : '');
+  $('qFeedback').innerHTML = '';
+  if (it.type === 'mc') {
+    const col = it.showTerm ? 1 : 0, seen = new Set([norm(answer)]), opts = [answer];
+    for (const j of shuffle(d.cards.map((_, k) => k))) {
+      if (opts.length >= 4) break;
+      const v = d.cards[j][col]; if (seen.has(norm(v))) continue; seen.add(norm(v)); opts.push(v);
+    }
+    const sh = shuffle(opts);
+    $('qBody').innerHTML = `<div class="choices">${sh.map((o, k) => `<button class="choice" type="button" data-k="${k}"><span class="k">${k + 1}</span><span>${esc(o)}</span></button>`).join('')}</div>`;
+    $('qBody').querySelectorAll('.choice').forEach(b => b.onclick = () => {
+      if (Q.answered) return;
+      const pick = sh[+b.dataset.k], ok = pick === answer;
+      $('qBody').querySelectorAll('.choice').forEach(x => { x.disabled = true; if (sh[+x.dataset.k] === answer) x.classList.add('right'); });
+      if (!ok) b.classList.add('wrong');
+      grade(ok, answer, null, pick);
+    });
+  } else {
+    const isSpanishish = /[áéíóúñü¿¡]/i.test(answer);
+    $('qBody').innerHTML = `<form class="typed" id="qForm" autocomplete="off"><input id="qInput" type="text" placeholder="Type the ${it.showTerm ? 'definition' : 'term'}" aria-label="Your answer" autocapitalize="off" spellcheck="false"><button class="btn primary" type="submit">Check</button><button class="btn" type="button" id="qIdk">Don't know</button></form>` +
+      `<div class="accents" style="margin-top:8px" aria-label="Insert accented letter">${'á é í ó ú ñ ü ¿ ¡'.split(' ').map(ch => `<button type="button" tabindex="-1">${ch}</button>`).join('')}</div>`;
+    const inp = $('qInput'); inp.focus({preventScroll: true});
+    $('qBody').querySelector('.accents').hidden = !isSpanishish && !/[áéíóúñü]/i.test(d.cards.flat().join(''));
+    $('qBody').querySelectorAll('.accents button').forEach(b => b.onclick = () => {
+      const s = inp.selectionStart ?? inp.value.length; inp.value = inp.value.slice(0, s) + b.textContent + inp.value.slice(inp.selectionEnd ?? s); inp.focus(); inp.setSelectionRange(s + 1, s + 1);
+    });
+    $('qForm').addEventListener('submit', e => { e.preventDefault(); if (Q.answered) return; const r = check(inp.value, answer); inp.readOnly = true; grade(r.ok, answer, r.note, inp.value); });
+    $('qIdk').onclick = () => { if (Q.answered) return; inp.readOnly = true; grade(false, answer, null, ''); };
+  }
+}
+function grade(ok, answer, note, given) {
+  Q.answered = true;
+  const it = Q.items[Q.pos], typed = it.type === 'typed';
+  if (ok) Q.right++; else Q.missed.push(it.i);
+  prog()[it.i] = ok ? (prog()[it.i] || 'known') : 'learning';
+  if (!ok) prog()[it.i] = 'learning';
+  store.set('fq.progress', progress); renderHeader();
+  $('qRunScore').textContent = `${Q.right} right`;
+  const last = Q.pos === Q.items.length - 1;
+  $('qFeedback').innerHTML = `<div class="feedback ${ok ? 'right' : 'wrong'}"><strong>${ok ? 'Correct' : given ? 'Not quite' : 'Here it is'}</strong>` +
+    (ok && !note ? '' : `<span class="ans">${ok ? esc(note) + ' ' : ''}Answer: <strong>${esc(answer)}</strong></span>`) +
+    `<div class="row"><button class="btn primary" type="button" id="qNext">${last ? 'See results' : 'Next question'}</button>` +
+    (!ok && typed && given ? `<button class="btn" type="button" id="qOverride">I was right</button>` : '') + `</div></div>`;
+  $('qNext').onclick = nextQ; $('qNext').focus({preventScroll: true});
+  const ov = $('qOverride');
+  if (ov) ov.onclick = () => { Q.right++; Q.missed.pop(); prog()[it.i] = 'known'; store.set('fq.progress', progress); renderHeader(); nextQ(); };
+}
+function nextQ() { if (Q.pos < Q.items.length - 1) { Q.pos++; renderQ(); } else finishQ(); }
+function finishQ() {
+  const d = deck(), n = Q.items.length, pct = Math.round(Q.right / n * 100);
+  $('qRun').hidden = true; const el = $('qDone'); el.hidden = false;
+  const missed = [...new Set(Q.missed)];
+  el.innerHTML = `<div class="label">Your score</div><div class="score">${Q.right} / ${n} <span style="font-size:.45em;color:var(--muted)">${pct}%</span></div>` +
+    `<div class="toolbar">${missed.length ? `<button class="btn primary" type="button" id="qRetry">Retry the ${missed.length} missed</button>` : ''}<button class="btn${missed.length ? '' : ' primary'}" type="button" id="qAgain">New quiz</button></div>` +
+    (missed.length ? `<div class="label">Missed</div><div class="list">${missed.map(i => `<div class="row-card"><span class="n">${i + 1}.</span><span class="t">${esc(d.cards[i][0])}</span><span class="d">${esc(d.cards[i][1])}</span></div>`).join('')}</div>` : '<p>Perfect run. Every answer was right.</p>');
+  if ($('qRetry')) $('qRetry').onclick = () => quizStart(missed);
+  $('qAgain').onclick = quizReset;
+}
+$('qStart').onclick = () => quizStart();
+$('qQuit').onclick = () => { if (Q && Q.pos > 0) finishQ(); else quizReset(); };
+document.addEventListener('keydown', e => {
+  if (mode !== 'quiz' || !Q || $('qRun').hidden) return;
+  if (!Q.answered && Q.items[Q.pos].type === 'mc' && /^[1-4]$/.test(e.key)) { const b = $('qBody').querySelector(`[data-k="${+e.key - 1}"]`); b && b.click(); }
+  else if (Q.answered && e.key === 'Enter' && e.target.id !== 'qNext') { e.preventDefault(); nextQ(); }
+});
+
+/* ---------- learn ---------- */
+// level per card: 0 = seen but missed, 1 = familiar (choice right), 2 = mastered. Missing = not studied.
+let learn = store.get('fq.learn', {});
+const lv = () => (learn[curId] ||= {});
+const ROUND = 7;
+const lDir = seg('lDir'), lTypes = seg('lTypes');
+let L = null, lTimer = null;
+function learnStats() {
+  const d = deck(), s = lv(); let n = 0, l = 0, m = 0;
+  d.cards.forEach((_, i) => { const v = s[i]; if (v === undefined) n++; else if (v >= 2) m++; else l++; });
+  return { n, l, m, total: d.cards.length };
+}
+function renderLearnStats() {
+  if (!deck()) return;
+  const st = learnStats();
+  $('lsNew').textContent = st.n; $('lsLrn').textContent = st.l; $('lsMst').textContent = st.m;
+  $('lbMst').style.width = (st.m / st.total * 100) + '%'; $('lbLrn').style.width = (st.l / st.total * 100) + '%';
+  $('lGo').textContent = st.m === st.total ? 'Everything is mastered' : (st.l || st.m) ? 'Continue learning' : 'Start learning';
+  $('lGo').disabled = st.m === st.total;
+}
+function learnReset() { clearTimeout(lTimer); L = null; $('lStart').hidden = false; $('lRun').hidden = true; $('lSum').hidden = true; renderLearnStats(); }
+function learnRound() {
+  const d = deck(), s = lv();
+  const all = d.cards.map((_, i) => i).filter(i => !(s[i] >= 2));
+  if (!all.length) return learnDone();
+  // in-progress cards first (missed before familiar), then new cards in deck order
+  const going = shuffle(all.filter(i => s[i] !== undefined)).sort((a, b) => s[a] - s[b]);
+  const fresh = all.filter(i => s[i] === undefined);
+  const pick = going.slice(0, ROUND);
+  if (pick.length < ROUND) pick.push(...fresh.slice(0, ROUND - pick.length));
+  L = { round: (L ? L.round : 0) + 1, queue: shuffle(pick).map(i => ({ i })), pos: 0, log: [], answered: false };
+  $('lStart').hidden = true; $('lSum').hidden = true; $('lRun').hidden = false;
+  renderL();
+}
+function renderL() {
+  clearTimeout(lTimer);
+  const d = deck(), q = L.queue[L.pos], c = d.cards[q.i], lvl = lv()[q.i];
+  const showTerm = lDir() === 'term';
+  const prompt = showTerm ? c[0] : c[1], answer = showTerm ? c[1] : c[0];
+  const typed = lTypes() === 'both' && lvl === 1 || d.cards.length < 4;
+  q.typed = typed; L.answered = false;
+  $('lRoundLbl').textContent = `Round ${L.round} · ${Math.min(L.pos + 1, L.queue.length)} of ${L.queue.length}`;
+  $('lPips').innerHTML = L.queue.map((x, k) => `<span class="pip${k === L.pos ? ' now' : x.ok === true ? ' ok' : x.ok === false ? ' no' : ''}"></span>`).join('');
+  const tag = lvl === undefined ? '<span class="lvl l1">New</span>' : lvl === 0 ? '<span class="lvl l0">Missed before</span>' : '<span class="lvl l1">Familiar</span>';
+  $('lAsk').innerHTML = `${typed ? 'Type the ' + (showTerm ? 'definition' : 'term') : 'Choose the ' + (showTerm ? 'definition' : 'term')} ${tag}`;
+  $('lPrompt').textContent = prompt; $('lPrompt').className = 'prompt' + (prompt.length > 90 ? ' long' : '');
+  $('lFeedback').innerHTML = '';
+  if (!typed) {
+    const col = showTerm ? 1 : 0, seen = new Set([norm(answer)]), opts = [answer];
+    for (const j of shuffle(d.cards.map((_, k) => k))) {
+      if (opts.length >= 4) break;
+      const v = d.cards[j][col]; if (seen.has(norm(v))) continue; seen.add(norm(v)); opts.push(v);
+    }
+    const sh = shuffle(opts);
+    $('lBody').innerHTML = `<div class="choices">${sh.map((o, k) => `<button class="choice" type="button" data-k="${k}"><span class="k">${k + 1}</span><span>${esc(o)}</span></button>`).join('')}</div>` +
+      `<div class="toolbar" style="margin-top:10px"><button class="btn" type="button" id="lIdk">Don't know</button></div>`;
+    const lock = () => $('lBody').querySelectorAll('.choice').forEach(x => { x.disabled = true; if (sh[+x.dataset.k] === answer) x.classList.add('right'); });
+    $('lBody').querySelectorAll('.choice').forEach(b => b.onclick = () => {
+      if (L.answered) return;
+      const ok = sh[+b.dataset.k] === answer; lock(); if (!ok) b.classList.add('wrong');
+      learnGrade(ok, answer, null, true);
+    });
+    $('lIdk').onclick = () => { if (L.answered) return; lock(); learnGrade(false, answer, null, false); };
+  } else {
+    const accents = /[áéíóúñü]/i.test(d.cards.flat().join(''));
+    $('lBody').innerHTML = `<form class="typed" id="lForm" autocomplete="off"><input id="lInput" type="text" placeholder="Type the ${showTerm ? 'definition' : 'term'}" aria-label="Your answer" autocapitalize="off" spellcheck="false"><button class="btn primary" type="submit">Check</button><button class="btn" type="button" id="lIdk">Don't know</button></form>` +
+      (accents ? `<div class="accents" style="margin-top:8px" aria-label="Insert accented letter">${'á é í ó ú ñ ü ¿ ¡'.split(' ').map(ch => `<button type="button" tabindex="-1">${ch}</button>`).join('')}</div>` : '');
+    const inp = $('lInput'); inp.focus({ preventScroll: true });
+    $('lBody').querySelectorAll('.accents button').forEach(b => b.onclick = () => {
+      const p = inp.selectionStart ?? inp.value.length; inp.value = inp.value.slice(0, p) + b.textContent + inp.value.slice(inp.selectionEnd ?? p); inp.focus(); inp.setSelectionRange(p + 1, p + 1);
+    });
+    $('lForm').addEventListener('submit', e => { e.preventDefault(); if (L.answered) return; const r = check(inp.value, answer); inp.readOnly = true; learnGrade(r.ok, answer, r.note, inp.value.trim() !== ''); });
+    $('lIdk').onclick = () => { if (L.answered) return; inp.readOnly = true; learnGrade(false, answer, null, false); };
+  }
+}
+function learnApply(q, ok) {
+  const s = lv(), d = deck(), was = s[q.i];
+  const onlyMc = lTypes() === 'mc' || d.cards.length < 4;
+  if (!ok) s[q.i] = 0;
+  else if (q.typed || (onlyMc && was === 1)) s[q.i] = 2;
+  else s[q.i] = 1;
+  prog()[q.i] = s[q.i] >= 2 ? 'known' : 'learning';
+  store.set('fq.learn', learn); store.set('fq.progress', progress);
+}
+function learnGrade(ok, answer, note, gaveAnswer) {
+  L.answered = true;
+  const q = L.queue[L.pos];
+  const before = lv()[q.i];
+  q.ok = ok; learnApply(q, ok);
+  if (!ok && !q.retry) L.queue.push({ i: q.i, retry: true }); // see it again this round
+  L.log.push({ i: q.i, ok, before, after: lv()[q.i] });
+  renderHeader(); renderLearnStats();
+  const mastered = lv()[q.i] >= 2;
+  $('lFeedback').innerHTML = `<div class="feedback ${ok ? 'right' : 'wrong'}"><strong>${ok ? (mastered ? 'Correct. Mastered!' : 'Correct') : gaveAnswer ? 'Not quite. You will see this one again.' : 'No problem. You will see this one again.'}</strong>` +
+    (ok && !note ? '' : `<span class="ans">${ok ? esc(note) + ' ' : ''}Answer: <strong>${esc(answer)}</strong></span>`) +
+    `<div class="row"><button class="btn primary" type="button" id="lNext">Continue</button>` +
+    (!ok && q.typed && gaveAnswer ? `<button class="btn" type="button" id="lOverride">I was right</button>` : '') + `</div></div>`;
+  $('lNext').onclick = learnNext; $('lNext').focus({ preventScroll: true });
+  const ov = $('lOverride');
+  if (ov) ov.onclick = () => {
+    if (L.queue[L.queue.length - 1].i === q.i && L.queue[L.queue.length - 1].retry) L.queue.pop();
+    q.ok = true; lv()[q.i] = before; learnApply(q, true); L.log[L.log.length - 1] = { i: q.i, ok: true, before, after: lv()[q.i] };
+    renderHeader(); renderLearnStats(); learnNext();
+  };
+  if (ok && !note) lTimer = setTimeout(learnNext, 900);
+}
+function learnNext() {
+  clearTimeout(lTimer);
+  if (!L || $('lRun').hidden) return;
+  if (L.pos < L.queue.length - 1) { L.pos++; renderL(); } else learnSummary();
+}
+function learnSummary() {
+  const d = deck(), st = learnStats();
+  $('lRun').hidden = true; const el = $('lSum'); el.hidden = false;
+  const byCard = new Map(); L.log.forEach(x => { const o = byCard.get(x.i); byCard.set(x.i, { i: x.i, after: x.after, missed: (o && o.missed) || !x.ok }); });
+  const rows = [...byCard.values()];
+  const right = rows.filter(r => !r.missed).length;
+  const lvlTag = v => v >= 2 ? '<span class="lvl l2">Mastered</span>' : v === 1 ? '<span class="lvl l1">Familiar</span>' : '<span class="lvl l0">Learning</span>';
+  if (st.m === st.total) return learnDone();
+  el.innerHTML = `<div class="label">Round ${L.round} done</div><div class="score">${right} / ${rows.length}</div>` +
+    `<p style="margin:0">${right === rows.length ? 'Every card right on the first try.' : `${rows.length - right} card${rows.length - right === 1 ? '' : 's'} needed a second try.`} You have mastered ${st.m} of ${st.total} cards.</p>` +
+    `<div class="toolbar"><button class="btn primary" type="button" id="lMore">Next round</button><button class="btn" type="button" id="lStop">Stop for now</button></div>` +
+    `<div class="list">${rows.map(r => `<div class="row-card"><span class="t">${esc(d.cards[r.i][0])}</span><span class="d">${esc(d.cards[r.i][1])}</span><span>${lvlTag(r.after)}</span></div>`).join('')}</div>`;
+  $('lMore').onclick = learnRound; $('lMore').focus({ preventScroll: true });
+  $('lStop').onclick = learnReset;
+}
+function learnDone() {
+  const st = learnStats(); $('lRun').hidden = true; $('lStart').hidden = true; const el = $('lSum'); el.hidden = false;
+  el.innerHTML = `<div class="label">Deck complete</div><div class="score">${st.total} / ${st.total}</div><p style="margin:0">You mastered every card in this deck. Take a quiz to check yourself, or reset Learn to go again.</p>` +
+    `<div class="toolbar"><button class="btn primary" type="button" id="lToQuiz">Take a quiz</button><button class="btn" type="button" id="lAgain">Reset Learn progress</button></div>`;
+  $('lToQuiz').onclick = () => setMode('quiz');
+  $('lAgain').onclick = () => { delete learn[curId]; store.set('fq.learn', learn); L = null; learnReset(); };
+}
+$('lGo').onclick = learnRound;
+$('lPause').onclick = () => { if (L && L.log.length) learnSummary(); else learnReset(); };
+$('lReset').onclick = () => {
+  const b = $('lReset');
+  if (!b.dataset.armed) { b.dataset.armed = 1; b.textContent = 'Tap again to reset'; return; }
+  delete b.dataset.armed; b.textContent = 'Reset Learn progress';
+  delete learn[curId]; store.set('fq.learn', learn); learnReset();
+};
+document.addEventListener('keydown', e => {
+  if (mode !== 'learn' || !L || $('lRun').hidden) return;
+  if (!L.answered && !L.queue[L.pos].typed && /^[1-4]$/.test(e.key)) { const b = $('lBody').querySelector(`[data-k="${+e.key - 1}"]`); b && b.click(); }
+  else if (L.answered && e.key === 'Enter' && e.target.id !== 'lNext') { e.preventDefault(); learnNext(); }
+});
+
+/* ---------- list ---------- */
+function renderList() {
+  const d = deck(), p = prog(), q = $('lSearch').value.trim();
+  const nq = norm(q);
+  const hl = s => { if (!q) return esc(s); const i = norm(s).indexOf(nq); return i < 0 || norm(s).length !== s.length ? esc(s) : esc(s.slice(0, i)) + '<mark>' + esc(s.slice(i, i + q.length)) + '</mark>' + esc(s.slice(i + q.length)); };
+  const rows = d.cards.map((c, i) => [c, i]).filter(([c]) => !q || norm(c[0] + ' ' + c[1]).includes(nq));
+  $('lCount').textContent = q ? `${rows.length} of ${d.cards.length} cards` : `${d.cards.length} cards`;
+  $('lList').innerHTML = rows.length ? rows.map(([c, i]) => `<div class="row-card"><span class="n">${i + 1}.</span><span class="t">${hl(c[0])}${p[i] ? `<span class="dot ${p[i]}" title="${p[i] === 'known' ? 'Got it' : 'Still learning'}"></span>` : ''}</span><span class="d">${hl(c[1])}</span></div>`).join('') : '<div class="empty">No cards match that search.</div>';
+}
+$('lSearch').addEventListener('input', renderList);
+
+/* ---------- PDF parsing ---------- */
+async function parsePdf(buf) {
+  const pdf = await pdfjsLib.getDocument({data: buf, isEvalSupported: false}).promise;
+  let title = '';
+  try { const md = await pdf.getMetadata(); title = (md.info && md.info.Title) || ''; } catch {}
+  const pages = [];
+  for (let p = 1; p <= pdf.numPages; p++) {
+    const page = await pdf.getPage(p), tc = await page.getTextContent();
+    const items = tc.items.filter(t => t.str && t.str.trim()).map(t => ({ s: t.str, x: t.transform[4], y: t.transform[5], w: t.width, h: Math.abs(t.transform[3]) || t.height || 10 }));
+    // group into lines (top to bottom)
+    items.sort((a, b) => b.y - a.y || a.x - b.x);
+    const lines = [];
+    for (const it of items) {
+      const ln = lines.find(l => Math.abs(l.y - it.y) < Math.max(2, it.h * .3));
+      if (ln) ln.items.push(it); else lines.push({ y: it.y, items: [it] });
+    }
+    lines.forEach(l => {
+      l.items.sort((a, b) => a.x - b.x);
+      // glue pieces that touch (e.g. "1" + "." become "1.")
+      const merged = [];
+      for (const it of l.items) {
+        const last = merged[merged.length - 1];
+        if (last && it.x - (last.x + last.w) < 1.5) { last.s += it.s; last.w = it.x + it.w - last.x; }
+        else merged.push({ ...it });
+      }
+      l.items = merged; l.text = joinItems(merged);
+    });
+    pages.push(lines);
+  }
+  const numRe = /^\s*(\d+)\.\s*$/;
+  // find column where definitions start: x after the widest gap on numbered lines
+  const xs = [];
+  let numX = Infinity;
+  for (const lines of pages) for (const l of lines) {
+    const it = l.items; if (!numRe.test(it[0].s)) continue;
+    numX = Math.min(numX, it[0].x);
+    let best = 0, bx = null;
+    for (let k = 2; k < it.length; k++) { const gap = it[k].x - (it[k - 1].x + it[k - 1].w); if (gap > best) { best = gap; bx = it[k].x; } }
+    if (bx !== null && best > 20) xs.push(Math.round(bx));
+  }
+  if (!xs.length) throw new Error('No numbered cards found');
+  const freq = {}; xs.forEach(x => freq[x] = (freq[x] || 0) + 1);
+  const defX = +Object.entries(freq).sort((a, b) => b[1] - a[1])[0][0] - 4;
+  const cards = []; let cur = null, expect = 1;
+  const skip = t => /^study online at/i.test(t) || /^\d+\s*\/\s*\d+$/.test(t) || (title && t === title);
+  for (const lines of pages) {
+    let started = false;
+    for (const l of lines) {
+      const it = l.items, m = numRe.exec(it[0].s);
+      if (m && it[0].x < numX + 6 && (+m[1] === expect || !cur)) {
+        if (cur) cards.push(cur);
+        cur = { t: [], d: [] }; expect = +m[1] + 1; started = true;
+        it.slice(1).forEach(x => (x.x >= defX ? cur.d : cur.t).push(x));
+        continue;
+      }
+      if (!started && !cards.length && !cur && !title) { title = l.text; continue; }
+      if (!started || !cur || skip(l.text)) continue;
+      // continuation line of a wrapped term or definition
+      const t = it.filter(x => x.x < defX), d = it.filter(x => x.x >= defX);
+      if (t.length) cur.t.push({ br: true }, ...t);
+      if (d.length) cur.d.push({ br: true }, ...d);
+    }
+  }
+  if (cur) cards.push(cur);
+  const toText = arr => { const out = []; let line = []; for (const x of arr) { if (x.br) { if (line.length) out.push(joinItems(line)); line = []; } else line.push(x); } if (line.length) out.push(joinItems(line)); return out.join(' ').replace(/\s+/g, ' ').trim(); };
+  return { title: title.trim(), cards: cards.map(c => [toText(c.t), toText(c.d)]).filter(c => c[0] || c[1]) };
+}
+function joinItems(items) {
+  let s = '', prevEnd = null;
+  for (const it of items) { if (prevEnd !== null && it.x - prevEnd > 1 && !/\s$/.test(s)) s += ' '; s += it.s; prevEnd = it.x + it.w; }
+  return s.replace(/\s+/g, ' ').trim();
+}
+
+function addDeck(title, cards, source) {
+  const d = { id: 'd' + Date.now().toString(36), title: title || 'Untitled deck', source, cards };
+  decks.push(d); saveDecks(); selectDeck(d.id); return d;
+}
+async function handleFile(f) {
+  const st = $('impStatus');
+  if (!f) return;
+  if (!/pdf$/i.test(f.type) && !/\.pdf$/i.test(f.name)) { st.className = 'status err'; st.textContent = `${f.name} is not a PDF. Choose a .pdf file.`; return; }
+  st.className = 'status'; st.textContent = `Reading ${f.name}…`;
+  try {
+    const r = await parsePdf(new Uint8Array(await f.arrayBuffer()));
+    if (!r.cards.length) throw new Error('none');
+    const d = addDeck(r.title || f.name.replace(/\.pdf$/i, ''), r.cards, f.name);
+    st.className = 'status ok'; st.textContent = `Added “${d.title}” with ${r.cards.length} cards.`;
+    setMode('flash');
+  } catch (e) {
+    console.error(e);
+    st.className = 'status err';
+    st.textContent = `Couldn't find numbered term and definition columns in ${f.name}. Try exporting the set again, or paste the cards as text below.`;
+  }
+}
+$('file').addEventListener('change', e => { handleFile(e.target.files[0]); e.target.value = ''; });
+const drop = $('drop');
+['dragenter', 'dragover'].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.add('over'); }));
+['dragleave', 'drop'].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.remove('over'); }));
+drop.addEventListener('drop', e => handleFile(e.dataTransfer.files[0]));
+document.addEventListener('dragover', e => e.preventDefault());
+document.addEventListener('drop', e => { e.preventDefault(); if (e.target.closest('#drop')) return; const f = e.dataTransfer && e.dataTransfer.files[0]; if (f) { setMode('import'); handleFile(f); } });
+
+$('pasteGo').onclick = () => {
+  const lines = $('pasteText').value.split(/\r?\n/).map(l => l.trim()).filter(Boolean), st = $('pasteStatus');
+  const cards = [];
+  for (const l of lines) {
+    let m = l.split('\t');
+    if (m.length < 2) m = l.split(/\s+[-–—]\s+/);
+    if (m.length < 2) m = l.split(/\s*:\s+/);
+    if (m.length < 2) m = l.split(/\s*,\s*/);
+    if (m.length >= 2) cards.push([m[0].trim(), m.slice(1).join(', ').trim()]);
+  }
+  if (!cards.length) { st.className = 'status err'; st.textContent = 'No cards found. Put a tab between each term and definition.'; return; }
+  addDeck($('pasteName').value.trim() || 'Pasted deck', cards, 'pasted text');
+  $('pasteText').value = ''; $('pasteName').value = '';
+  st.className = 'status ok'; st.textContent = `Added ${cards.length} cards.`;
+  setMode('flash');
+};
+
+function renderDeckList() {
+  $('deckList').innerHTML = decks.map(d => `<div class="deckrow" data-id="${esc(d.id)}"><span class="nm">${esc(d.title)}</span><span class="c">${d.cards.length} cards</span>` +
+    `<button class="btn" type="button" data-act="open">Study</button><button class="btn" type="button" data-act="reset">Reset progress</button>${decks.length > 1 ? '<button class="btn bad" type="button" data-act="del">Remove</button>' : ''}</div>`).join('');
+}
+$('deckList').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  const id = b.closest('.deckrow').dataset.id;
+  if (b.dataset.act === 'open') { selectDeck(id); setMode('flash'); }
+  if (b.dataset.act === 'reset') { delete progress[id]; delete learn[id]; store.set('fq.progress', progress); store.set('fq.learn', learn); if (id === curId) { L = null; learnReset(); } if (id === curId) { renderHeader(); renderFlash(true); } b.textContent = 'Progress cleared'; }
+  if (b.dataset.act === 'del') {
+    if (b.dataset.armed) {
+      decks = decks.filter(d => d.id !== id); delete progress[id];
+      if (SAMPLE && id === SAMPLE.id) store.set('fq.sampleRemoved', true);
+      store.set('fq.decks', decks); store.set('fq.progress', progress);
+      if (curId === id) { curId = decks[0].id; store.set('fq.cur', curId); renderHeader(); resetFlash(); quizReset(); L = null; learnReset(); }
+      renderHeader(); renderDeckList();
+    } else { b.dataset.armed = 1; b.textContent = 'Tap again to remove'; }
+  }
+});
+
+/* ---------- boot ---------- */
+renderHeader(); if (deck()) { resetFlash(); renderList(); learnReset(); } setMode(mode);
+</script>
+</body>
+</html>
